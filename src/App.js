@@ -3,14 +3,15 @@ import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf';
 import mammoth from 'mammoth';
 import axios from 'axios';
 import './App.css';
-
+ 
+ 
 
 GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.12.313/pdf.worker.min.js`;
 
 const App = () => {
-  const [resumeFile, setResumeFile] = useState(null);
-  const [result, setResult] = useState();
-  const [loading,setLoading] = useState('')
+   const [result, setResult] = useState([]);
+  const [loading,setLoading] = useState('');
+ 
  
   
   const extractTextFromPDF = async (file) => {
@@ -33,7 +34,7 @@ const App = () => {
     return text;
   };
 
-  const extractFileContent = async () => {
+  const extractFileContent = async (resumeFile) => {
     if (resumeFile) {
       let text = '';
       if (resumeFile.type === 'application/pdf') {
@@ -48,13 +49,20 @@ const App = () => {
     }
   };
 
-  const handleFileChange = async (event) => {
-    const file = event.target.files[0];
-    setResumeFile(file);
-  };
+  
 
-  const handleUploadClick = async () => {
-    setLoading('Loading')
+
+  const handleFileChange = async (event) => {
+     
+    const chosenFiles = Array.prototype.slice.call(event.target.files);
+     chosenFiles.forEach((file)=> {
+      console.log(file)
+      handleUploadClick(file)
+    })
+     };
+
+  const handleUploadClick = async (resumeFile) => {
+     setLoading('Loading')
     if (!resumeFile) {
       console.log('Please select a resume file to upload.');
       return;
@@ -75,87 +83,83 @@ const App = () => {
       let collectedData = response.data.candidates[0].content.parts[0].text;
       collectedData = collectedData.replace(/```json|```/g, '').trim();
       console.log("Response from Gemini API",JSON.parse(collectedData))
-      const entries = JSON.parse(collectedData);
-      setResult(entries);
+      let entries = JSON.parse(collectedData);
+      console.log("entries",entries)
+      setResult((result) => [...result,entries]);
       setLoading('')
+      console.log("entries",result)
 
    };
 
   return (
     <div className='container'>
       <h1>Resume Reader with Gemini API</h1>
-      <input type="file" onChange={handleFileChange} className="file-upload" />
+      <input type="file" onChange={handleFileChange} className="file-upload" multiple />
       <button onClick={handleUploadClick} className="btn btn-primary"> Upload Resume</button>
       {loading}
-      {result && (
+      {console.log(result)}
+      
+      {result && result.map((result)=>(
         <>
-          <h3>User Information</h3>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Heading</th>
-                <th>Data</th>
+        <h3>Candidate Name- {result.Name}</h3>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Heading</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Name</td>
+              <td>{result.Name}</td>
+            </tr>
+            <tr>
+              <td>Phone</td>
+              <td>{result.Phone}</td>
+            </tr>
+            <tr>
+              <td>Email</td>
+              <td>{result.Email}</td>
+            </tr>
+            <tr>
+              <td>Skills</td>
+              <td>{result.Skills.join(', ')}</td>
+            </tr>
+            <tr>
+              <td>Objective</td>
+              <td>{result.Objective}</td>
+            </tr>
+            {result.Education.map((edu, index) => (
+              <tr key={index}>
+                <td>Education {index + 1}</td>
+                <td>
+                  {edu.Institution}, {edu.Degree}, {edu.CGPA}, {edu.Dates}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Name</td>
-                <td>{result.Name}</td>
+            ))}
+            {result.Experience.map((exp, index) => (
+              <tr key={index}>
+                <td>Experience {index + 1}</td>
+                <td>
+                  {exp.Title} at {exp.Company}, {exp.Location} ({exp.Dates})
+                   
+                </td>
               </tr>
-              <tr>
-                <td>Phone</td>
-                <td>{result.Phone}</td>
+            ))}
+            {result.Projects.map((proj, index) => (
+              <tr key={index}>
+                <td>Project {index + 1}</td>
+                <td>
+                  {proj.Name} - {proj.Technologies}, {proj.Dates}
+                  
+                </td>
               </tr>
-              <tr>
-                <td>Email</td>
-                <td>{result.Email}</td>
-              </tr>
-              <tr>
-                <td>Skills</td>
-                <td>{result.Skills.join(', ')}</td>
-              </tr>
-              <tr>
-                <td>Objective</td>
-                <td>{result.Objective}</td>
-              </tr>
-              {result.Education.map((edu, index) => (
-                <tr key={index}>
-                  <td>Education {index + 1}</td>
-                  <td>
-                    {edu.Institution}, {edu.Degree}, {edu.CGPA}, {edu.Dates}
-                  </td>
-                </tr>
-              ))}
-              {result.Experience.map((exp, index) => (
-                <tr key={index}>
-                  <td>Experience {index + 1}</td>
-                  <td>
-                    {exp.Title} at {exp.Company}, {exp.Location} ({exp.Dates})
-                    <ul>
-                      {exp.Description.map((desc, i) => (
-                        <li key={i}>{desc}</li>
-                      ))}
-                    </ul>
-                  </td>
-                </tr>
-              ))}
-              {result.Projects.map((proj, index) => (
-                <tr key={index}>
-                  <td>Project {index + 1}</td>
-                  <td>
-                    {proj.Name} - {proj.Technologies}, {proj.Dates}
-                    <ul>
-                      {proj.Description.map((desc, i) => (
-                        <li key={i}>{desc}</li>
-                      ))}
-                    </ul>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-         </>
-      )}
+            ))}
+          </tbody>
+        </table>
+        </>
+      ))}
     </div>
   );
 };
