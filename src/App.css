@@ -9,4 +9,15 @@
 input[type=file] {
   margin:3%;
 }
+.sidebar {
+  background-color: #e5e9ed;
+  padding: 15px;
+  height: 100vh; 
+  position: fixed;  
+  width: 250px;
+}
+.main-content{
+  margin-left: 250px;  
+  padding: 20px;
+}
  
